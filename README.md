@@ -5,7 +5,7 @@
 <h1 align="center">Python Agents Examples</h1>
 
 <p align="center">
-  <strong>A comprehensive collection of 77+ runnable examples for building voice, video, and telephony agents with LiveKit</strong>
+  <strong>A comprehensive collection of runnable examples for building voice, video, and telephony agents with LiveKit</strong>
 </p>
 
 <p align="center">
