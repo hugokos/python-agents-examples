@@ -2,10 +2,10 @@
   <img src="livekit-logo-dark.png" alt="LiveKit" height="80">
 </p>
 
-<h1 align="center">Python Agents Examples</h1>
+<h1 align="center">LiveKit Agents Examples in Python</h1>
 
 <p align="center">
-  <strong>A comprehensive collection of runnable examples for building voice, video, and telephony agents with LiveKit</strong>
+  <strong>Runnable examples for building voice, video, and telephony agents using LiveKit Agents</strong>
 </p>
 
 <p align="center">
