@@ -1,12 +1,12 @@
-# LemonSlice Salary Negotiation Coach
+# LemonSlice Contract Negotiation Trainer
 
-A LiveKit Agents demo that helps you practice asking your boss for a raise through interactive role-play sessions. Uses the lemonslice plugin to create an AI-powered coaching experience with different boss personalities and real-time feedback.
+A LiveKit Agents demo that helps you practice handling procurement contract scenarios through interactive role-play sessions. Uses the lemonslice plugin to create an AI-powered coaching experience with different contract scenarios and real-time feedback.
 
 ![Application preview](./.github/assets/app_preview.png)
 
 ## Features
 
-- **Three boss personalities**: Practice with Easy, Medium, and Hard difficulty levels
+- **Three procurement scenarios**: Practice with different contract negotiation situations (Scenario 1: Late Delivery of Parts fully implemented, Scenarios 2-3 coming soon)
 - **Real-time coaching**: Get feedback and advice during your practice session
 - **Smart mode switching**: Seamlessly transition between role-play and coaching modes
 - **Session timer**: 3-minute practice sessions with automatic wrap-up
@@ -62,6 +62,12 @@ LIVEKIT_URL=wss://your-project.livekit.cloud
 
 # LemonSlice Configuration
 LEMONSLICE_API_KEY=your_lemonslice_api_key
+
+# LemonSlice Agent IDs (use dashboard-configured agents)
+# These reference agents you've created in your LemonSlice dashboard
+SCENARIO_1_AGENT_ID=agent_f8b4dddd8bee7a8a
+# SCENARIO_2_AGENT_ID=agent_your_second_agent_id
+# SCENARIO_3_AGENT_ID=agent_your_third_agent_id
 ```
 
 The agent uses LiveKit Inference by default, which requires no additional API key configuration. If you prefer to use your own provider API keys, you can configure them in the agent code.
@@ -96,35 +102,30 @@ The agent will start and connect to your LiveKit server.
    http://localhost:3000
    ```
 
-4. Select a boss personality and start practicing
+4. Select a procurement scenario and start practicing
 
-## Boss personalities
+## Procurement scenarios
 
-The agent includes three distinct boss types to practice with:
+The agent includes three procurement contract scenarios to practice with:
 
-### The Encourager (Easy)
-- Supportive and open to discussion
-- Responds positively to clear value demonstrations
-- Good for building confidence and learning the basics
+### Scenario 1: Late Delivery of Parts (Available)
+- Vendor calls about a delayed shipment of repair kits
+- Practice handling contract issues professionally
+- Learn to gather facts, explore mitigation options, and maintain government rights
+- Good for learning procurement communication fundamentals
 
-### The Skeptic (Medium)
-- Questions your reasoning and assumptions
-- Challenges you to defend your worth
-- Pushes back on numbers and justifications
-- Good for preparing difficult conversations
+### Scenario 2: Coming Soon
+- Additional procurement scenario in development
 
-### The Busy Executive (Hard)
-- Impatient and time-constrained
-- Values conciseness and directness
-- Needs quick, compelling arguments
-- Good for practicing elevator pitch style requests
+### Scenario 3: Coming Soon
+- Additional procurement scenario in development
 
 ## How it works
 
 ### Session flow
 
-1. **Select a boss**: Choose your difficulty level from the welcome screen
-2. **Role-play mode**: The AI boss engages in a salary negotiation conversation
+1. **Select a scenario**: Choose a procurement contract scenario from the welcome screen
+2. **Role-play mode**: The AI vendor engages in a contract negotiation conversation
 3. **Coaching mode**: Click "How am I doing?" to pause and get feedback from the coach
 4. **Return to practice**: The coach will guide you back to continue the conversation
 5. **Wrap-up**: After 3 minutes, the session automatically ends
@@ -140,26 +141,26 @@ lemonslice/
 ├── agent/
 │   ├── lemonslice-agent.py    # Main agent logic
 │   ├── utils.py                # Prompt loading utilities
-│   ├── prompts/                # Boss and coaching prompts
+│   ├── prompts/                # Scenario vendor prompts
 │   └── pyproject.toml          # Python dependencies
 └── frontend/
     ├── components/
     │   └── app/                # React components
     ├── lib/
-    │   └── boss-personalities.ts  # Boss configuration
+    │   └── scenarios.ts        # Scenario configuration
     └── app/                    # Next.js app router
 ```
 
 ## Extending
 
-To modify the boss personalities:
+To modify the scenario configurations:
 
 1. Edit the prompt files in `agent/prompts/`:
-   - `easy_boss_prompt.yaml`
-   - `medium_boss_prompt.yaml`
-   - `hard_boss_prompt.yaml`
+   - `scenario_1_vendor_prompt.yaml`
+   - `scenario_2_vendor_prompt.yaml`
+   - `scenario_3_vendor_prompt.yaml`
 
-2. Update the boss configurations in `frontend/lib/boss-personalities.ts`
+2. Update the scenario configurations in `frontend/lib/scenarios.ts`
 
 To customize the coaching strategy:
 

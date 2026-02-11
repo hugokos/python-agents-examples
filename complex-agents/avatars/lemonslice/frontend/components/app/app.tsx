@@ -10,7 +10,7 @@ import { StartAudioButton } from '@/components/agents-ui/start-audio-button';
 import { ViewController } from '@/components/app/view-controller';
 import { Toaster } from '@/components/ui/sonner';
 import { useDebugMode } from '@/hooks/useDebug';
-import type { BossType } from '@/lib/boss-personalities';
+import type { ScenarioId } from '@/lib/scenarios';
 import { getSandboxTokenSource } from '@/lib/utils';
 
 const IN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
@@ -26,11 +26,11 @@ interface AppProps {
 }
 
 export function App({ appConfig }: AppProps) {
-  const [selectedBoss, setSelectedBoss] = useState<BossType>('easy');
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('scenario_1');
   const pendingStartRef = useRef(false);
 
   const tokenSource = useMemo(() => {
-    const participantAttributes = { boss_type: selectedBoss };
+    const participantAttributes = { scenario_id: selectedScenario };
 
     if (typeof process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT === 'string') {
       return getSandboxTokenSource(appConfig, participantAttributes);
@@ -52,25 +52,25 @@ export function App({ appConfig }: AppProps) {
       });
       return res.json();
     });
-  }, [appConfig, selectedBoss]);
+  }, [appConfig, selectedScenario]);
 
   const session = useSession(tokenSource, {
     ...(appConfig.agentName ? { agentName: appConfig.agentName } : {}),
-    participantAttributes: { boss_type: selectedBoss },
+    participantAttributes: { scenario_id: selectedScenario },
   });
 
-  const handleBossSelected = useCallback(
-    (bossType: BossType) => {
-      if (bossType === selectedBoss) {
-        // Boss type is already selected, start directly
+  const handleScenarioSelected = useCallback(
+    (scenarioId: ScenarioId) => {
+      if (scenarioId === selectedScenario) {
+        // Scenario is already selected, start directly
         session.start();
       } else {
-        // Boss type is different, let useEffect handle start after state update
-        setSelectedBoss(bossType);
+        // Scenario is different, let useEffect handle start after state update
+        setSelectedScenario(scenarioId);
         pendingStartRef.current = true;
       }
     },
-    [selectedBoss, session]
+    [selectedScenario, session]
   );
 
   // Start session after state updates
@@ -79,13 +79,13 @@ export function App({ appConfig }: AppProps) {
       pendingStartRef.current = false;
       session.start();
     }
-  }, [selectedBoss, session]);
+  }, [selectedScenario, session]);
 
   return (
     <AgentSessionProvider session={session}>
       <AppSetup />
       <main className="grid min-h-svh grid-cols-1 place-content-center">
-        <ViewController appConfig={appConfig} onBossSelected={handleBossSelected} />
+        <ViewController appConfig={appConfig} onScenarioSelected={handleScenarioSelected} />
       </main>
       <StartAudioButton label="Start Audio" />
       <Toaster

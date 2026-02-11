@@ -23,56 +23,95 @@ server = AgentServer()
 
 
 @dataclass
-class BossConfig:
-    """Configuration for each boss type including voice and avatar settings."""
+class ScenarioConfig:
+    """Configuration for each procurement scenario."""
     voice_id: str
-    avatar_image_url: str
-    avatar_prompt: str
+    agent_id: str  # LemonSlice agent ID from dashboard
+    contract_facts: dict
+    vendor_constraints: dict
+    outcomes: list
+    grounding_rules: dict
 
 
-# Boss configurations with unique voices and avatars
-BOSS_CONFIGS = {
-    "easy": BossConfig(
-        voice_id="f786b574-daa5-4673-aa0c-cbe3e8534c02",  # Katie - warm, supportive female
-        avatar_image_url=os.getenv("EASY_BOSS_IMAGE_URL", "https://iili.io/frL9tuj.png"),
-        avatar_prompt="Be warm and encouraging in your movements. Use open gestures and smile naturally. Show genuine interest and supportiveness through body language.",
+# Scenario configurations with unique voices and avatars
+SCENARIO_CONFIGS = {
+    "scenario_1": ScenarioConfig(
+        voice_id="9c8880b2-ccf9-4730-b805-cea23df247d7",  # Selected voice
+        agent_id=os.getenv("SCENARIO_1_AGENT_ID", "agent_f8b4dddd8bee7a8a"),
+        contract_facts={
+            "contract_number": "FA0000-26-P-0123",
+            "contract_type": "FFP commercial supply",
+            "clin": "0001",
+            "item": "Repair kits (generic)",
+            "qty": 24,
+            "delivery_terms": "30 days ARO",
+            "current_status": "supplier backorder",
+            "projected_delay_days": 21
+        },
+        vendor_constraints={
+            "base_delay_days": 21,
+            "expedite_delay_days": 7,
+            "partial_qty_available": 12,
+            "max_discount_pct": 8,
+            "substitute_available": True
+        },
+        outcomes=[
+            "expedite",
+            "partial_shipment",
+            "substitute",
+            "schedule_extension_with_consideration",
+            "impasse_escalate"
+        ],
+        grounding_rules={
+            "must_request_written_notice": True,
+            "must_avoid_unilateral_promises": True,
+            "preferred_language": [
+                "mitigation plan",
+                "revised delivery schedule",
+                "consideration",
+                "modification",
+                "sub-tier supplier"
+            ]
+        }
     ),
-    "medium": BossConfig(
-        voice_id="228fca29-3a0a-435c-8728-5cb483251068",  # Kiefer - professional, measured male
-        avatar_image_url=os.getenv("MEDIUM_BOSS_IMAGE_URL", "https://iili.io/frL9L8u.png"),
-        avatar_prompt="Be professional and thoughtful in your movements. Use controlled gestures. Show engagement through body language.",
+    "scenario_2": ScenarioConfig(
+        voice_id="228fca29-3a0a-435c-8728-5cb483251068",
+        agent_id=os.getenv("SCENARIO_2_AGENT_ID", "agent_f8b4dddd8bee7a8a"),  # Placeholder
+        contract_facts={},
+        vendor_constraints={},
+        outcomes=[],
+        grounding_rules={}
     ),
-    "hard": BossConfig(
-        voice_id="66c6b81c-ddb7-4892-bdd5-19b5a7be38e7",  # Dorothy - confident, direct female
-        avatar_image_url=os.getenv("HARD_BOSS_IMAGE_URL", "https://iili.io/frL9Qyb.png"),
-        avatar_prompt="Be direct and professional in your movements. Use controlled gestures. Show confidence through body language.",
+    "scenario_3": ScenarioConfig(
+        voice_id="66c6b81c-ddb7-4892-bdd5-19b5a7be38e7",
+        agent_id=os.getenv("SCENARIO_3_AGENT_ID", "agent_f8b4dddd8bee7a8a"),  # Placeholder
+        contract_facts={},
+        vendor_constraints={},
+        outcomes=[],
+        grounding_rules={}
     ),
 }
 
 
 @dataclass
+@dataclass
 class UserData:
-    """Stores session state for the salary negotiation practice."""
+    """Stores session state for contract negotiation practice."""
     ctx: Optional[JobContext] = None
-    boss_type: str = "easy"
-    mode: str = "roleplay"  # "coaching" or "roleplay"
+    scenario_id: str = "scenario_1"
     session_start_time: float = 0.0
-    roleplay_start_time: float = 0.0
-    negotiation_phase: str = "intro"  # "intro", "ask", "objection", "closing"
-    coaching_requests: int = 0
-    conversation_highlights: list[str] = field(default_factory=list)
     timer_task: Optional[asyncio.Task] = None
     session_ended: bool = False
 
     def summarize(self) -> str:
-        return f"Salary negotiation practice. Difficulty: {self.boss_type}. Mode: {self.mode}"
+        return f"Contract negotiation practice. Scenario: {self.scenario_id}"
 
 
 RunContext_T = RunContext[UserData]
 
 
-class BaseBossAgent(Agent):
-    """Base class for all boss agents with coaching functionality."""
+class BaseVendorAgent(Agent):
+    """Base class for all vendor agents - simple negotiation without coaching."""
     
     def __init__(self, instructions: str, tts: inference.TTS) -> None:
         super().__init__(
@@ -88,16 +127,10 @@ class BaseBossAgent(Agent):
         userdata: UserData = self.session.userdata
         if userdata.ctx and userdata.ctx.room:
             await userdata.ctx.room.local_participant.set_attributes({
-                "agent": agent_name,
-                "mode": userdata.mode
+                "agent": agent_name
             })
-
-        # Start in roleplay mode
-        userdata.mode = "roleplay"
-        userdata.roleplay_start_time = time.time()
         
         # Start the 3-minute timer if not already started
-        # Timer is None on first run, or done() if it completed/cancelled
         if userdata.timer_task is None or userdata.timer_task.done():
             userdata.timer_task = asyncio.create_task(
                 self._start_session_timer(userdata, 180) 
@@ -115,52 +148,9 @@ class BaseBossAgent(Agent):
         # Log session stats
         session_duration = time.time() - userdata.session_start_time
         logger.info(
-            f"Session ended - Boss: {userdata.boss_type}, "
-            f"Duration: {session_duration:.1f}s, "
-            f"Coaching requests: {userdata.coaching_requests}, "
-            f"Phase: {userdata.negotiation_phase}"
+            f"Session ended - Scenario: {userdata.scenario_id}, "
+            f"Duration: {session_duration:.1f}s"
         )
-
-    @function_tool()
-    async def how_am_i_doing(self, context: RunContext_T) -> str:
-        """User is asking for coaching feedback on their negotiation performance."""
-        userdata = context.userdata
-        userdata.mode = "coaching"
-        userdata.coaching_requests += 1
-        
-        logger.info(f"Entering coaching mode (request #{userdata.coaching_requests})")
-        
-        # Update room attributes
-        if userdata.ctx and userdata.ctx.room:
-            await userdata.ctx.room.local_participant.set_attributes({
-                "mode": "coaching"
-            })
-        
-        # Update instructions to activate coaching mode
-        await self.update_instructions(
-            f"{self.instructions}\n\nIMPORTANT: You are now in COACHING MODE. Break character from the boss role completely and provide honest, specific feedback on their negotiation performance so far. Speak naturally using complete sentences and paragraphs. Do not use markdown, bullet points, headings, emojis, or symbols. After giving feedback, tell them you'll switch back to the boss role when they're ready, and then call the return_to_roleplay function to actually switch back to roleplay mode."
-        )
-        
-        return "Switching to coaching mode to provide feedback."
-
-    @function_tool()
-    async def return_to_roleplay(self, context: RunContext_T) -> str:
-        """Return from coaching mode back to the boss role-play."""
-        userdata = context.userdata
-        userdata.mode = "roleplay"
-        
-        logger.info("Returning to roleplay mode")
-        
-        # Update room attributes
-        if userdata.ctx and userdata.ctx.room:
-            await userdata.ctx.room.local_participant.set_attributes({
-                "mode": "roleplay"
-            })
-        
-        # Restore original boss instructions
-        await self.update_instructions(self.instructions)
-        
-        return "Returning to boss role-play mode."
 
     async def _start_session_timer(self, userdata: UserData, duration: int):
         """Timer that ends the session after specified duration."""
@@ -187,64 +177,77 @@ class BaseBossAgent(Agent):
             logger.error(f"Error in session timer: {e}")
 
 
-class EasyBossAgent(BaseBossAgent):
-    """The Encourager - supportive, friendly boss who can also coach."""
+class Scenario1VendorAgent(BaseVendorAgent):
+    """Late Delivery of Parts scenario vendor agent - Alex Rivera from Meridian Supply."""
     
     def __init__(self) -> None:
-        config = BOSS_CONFIGS["easy"]
+        config = SCENARIO_CONFIGS["scenario_1"]
+        
+        # Load instructions from YAML file (single source of truth)
+        instructions = load_prompt('scenario_1_vendor_prompt.yaml')
+        
         super().__init__(
-            instructions=load_prompt('easy_boss_prompt.yaml'),
-            tts=inference.TTS("cartesia/sonic-3", voice=config.voice_id)
+            instructions=instructions,
+            tts=inference.TTS("cartesia/sonic-3", voice=config.voice_id, extra_kwargs={"speed": "normal"})
         )
 
     async def on_enter(self) -> None:
-        """Called when entering the easy boss session."""
+        """Called when entering the scenario 1 vendor session."""
         await super().on_enter()
-        self.session.generate_reply(
-            instructions="Warmly greet the user as their supportive boss. Start the salary discussion meeting naturally. Keep it brief and welcoming."
+        
+        # Brief pause to ensure avatar is fully ready for lip sync
+        await asyncio.sleep(1.0)
+        
+        # Generate the opening message
+        await self.session.generate_reply(
+            instructions='Say the opening line exactly as written in your instructions: "Hi Lieutenant—Alex Rivera, Meridian Supply. Calling about the 24 repair kits. We\'ve hit a supplier delay and the standard lead time pushes delivery out about three weeks. We can pull it back, but only if you\'re willing to cover premium freight and expedite charges. What\'s your direction—revised schedule, or pay to keep the current date?"'
         )
 
 
-class MediumBossAgent(BaseBossAgent):
-    """The Skeptic - fair but demanding boss who can also coach."""
+class Scenario2VendorAgent(BaseVendorAgent):
+    """Placeholder for Scenario 2 vendor agent."""
     
     def __init__(self) -> None:
-        config = BOSS_CONFIGS["medium"]
+        config = SCENARIO_CONFIGS["scenario_2"]
+        minimal_instructions = """You are a vendor representative. This is a placeholder scenario."""
+        
         super().__init__(
-            instructions=load_prompt('medium_boss_prompt.yaml'),
+            instructions=minimal_instructions,
             tts=inference.TTS("cartesia/sonic-3", voice=config.voice_id)
         )
 
     async def on_enter(self) -> None:
-        """Called when entering the medium boss session."""
+        """Called when entering the scenario 2 vendor session."""
         await super().on_enter()
-        self.session.generate_reply(
-            instructions="Greet the user professionally as their skeptical boss. Ask what this meeting is about in a business-like manner."
-        )
+        # Dashboard agent handles the greeting
 
 
-class HardBossAgent(BaseBossAgent):
-    """The Busy Executive - impatient, difficult boss who can also coach."""
+class Scenario3VendorAgent(BaseVendorAgent):
+    """Placeholder for Scenario 3 vendor agent."""
     
     def __init__(self) -> None:
-        config = BOSS_CONFIGS["hard"]
+        config = SCENARIO_CONFIGS["scenario_3"]
+        minimal_instructions = """You are a vendor representative. This is a placeholder scenario."""
+        
         super().__init__(
-            instructions=load_prompt('hard_boss_prompt.yaml'),
+            instructions=minimal_instructions,
             tts=inference.TTS("cartesia/sonic-3", voice=config.voice_id)
         )
 
     async def on_enter(self) -> None:
-        """Called when entering the hard boss session."""
+        """Called when entering the scenario 3 vendor session."""
+        await super().on_enter()
+        # Dashboard agent handles the greeting
         await super().on_enter()
         
         # Add transcript callback to log what the LLM generates
         def log_agent_speech(text: str):
-            logger.info(f"HARD BOSS LLM OUTPUT: '{text}'")
+            logger.info(f"SCENARIO 3 VENDOR LLM OUTPUT: '{text}'")
         
         self.session.on("agent_speech_committed", log_agent_speech)
         
         self.session.generate_reply(
-            instructions="Greet the user dismissively as their impatient executive boss. Let them know you only have a few minutes. Use complete sentences."
+            instructions="Greet the user professionally. This is a placeholder scenario. Use complete sentences."
         )
 
 
@@ -253,58 +256,71 @@ async def entrypoint(ctx: JobContext):
     """Main entry point for the salary negotiation coach."""
     logger.info("Starting salary negotiation coach session")
     
-    # Connect to the room first
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    # Connect to the room first - subscribe to audio and video for avatar support
+    await ctx.connect(auto_subscribe=AutoSubscribe.SUBSCRIBE_ALL)
     
     # Wait for participant to connect
     participant = await ctx.wait_for_participant()
     
-    # Get boss type from participant attributes (default to "easy")
-    boss_type = participant.attributes.get("boss_type", "easy")
-    logger.info(f"Boss type selected: {boss_type}")
+    # Get scenario_id from participant attributes (default to "scenario_1")
+    scenario_id = participant.attributes.get("scenario_id", "scenario_1")
+    logger.info(f"Scenario selected: {scenario_id}")
     
-    # Validate boss type
-    if boss_type not in ["easy", "medium", "hard"]:
-        logger.warning(f"Invalid boss type '{boss_type}', defaulting to 'easy'")
-        boss_type = "easy"
+    # Validate scenario_id
+    if scenario_id not in ["scenario_1", "scenario_2", "scenario_3"]:
+        logger.warning(f"Invalid scenario_id '{scenario_id}', defaulting to 'scenario_1'")
+        scenario_id = "scenario_1"
     
-    # Get boss configuration for avatar and voice
-    boss_config = BOSS_CONFIGS[boss_type]
+    # Get scenario configuration for avatar and voice
+    scenario_config = SCENARIO_CONFIGS[scenario_id]
     
     # Initialize user data
     userdata = UserData(
         ctx=ctx,
-        boss_type=boss_type,
+        scenario_id=scenario_id,
         session_start_time=time.time()
     )
     
-    # Create the appropriate boss agent
-    if boss_type == "easy":
-        boss_agent = EasyBossAgent()
-    elif boss_type == "medium":
-        boss_agent = MediumBossAgent()
-    else:  # hard
-        boss_agent = HardBossAgent()
+    # Create the appropriate vendor agent
+    if scenario_id == "scenario_1":
+        vendor_agent = Scenario1VendorAgent()
+    elif scenario_id == "scenario_2":
+        vendor_agent = Scenario2VendorAgent()
+    else:  # scenario_3
+        vendor_agent = Scenario3VendorAgent()
+    
+    # Optional: Start lemonslice avatar (can be disabled for debugging)
+    # Set ENABLE_LEMONSLICE_AVATAR=false in .env.local to disable avatar
+    enable_avatar = os.getenv("ENABLE_LEMONSLICE_AVATAR", "true").lower() == "true"
     
     # Create session with userdata
     session = AgentSession[UserData](
         stt=inference.STT("deepgram/nova-3"),
         llm=inference.LLM("openai/gpt-4o-mini"),
-        tts=inference.TTS("cartesia/sonic-3", voice=boss_config.voice_id),
+        tts=inference.TTS("cartesia/sonic-3", voice=scenario_config.voice_id, extra_kwargs={"speed": "normal"}),  # normal speech
         resume_false_interruption=False,
         userdata=userdata
     )
     
-    # Start lemonslice avatar with boss-specific image and prompt
-    avatar = lemonslice.AvatarSession(
-        agent_image_url=boss_config.avatar_image_url,
-        agent_prompt=boss_config.avatar_prompt,
-    )
-    await avatar.start(session, room=ctx.room)
+    if enable_avatar:
+        logger.info("LemonSlice avatar enabled - starting avatar session")
+        # Start lemonslice avatar with scenario-specific agent ID from dashboard
+        # idle_timeout set to 300 seconds (5 minutes) to prevent avatar disconnection
+        # during the 180-second (3-minute) session duration
+        avatar = lemonslice.AvatarSession(
+            agent_id=scenario_config.agent_id,
+            idle_timeout=300,
+        )
+        # Start avatar and wait for it to be ready
+        # The avatar.start() method handles waiting for the participant and video track
+        await avatar.start(session, room=ctx.room)
+        logger.info("Avatar session started and ready")
+    else:
+        logger.info("LemonSlice avatar disabled (ENABLE_LEMONSLICE_AVATAR=false) - audio-only mode")
     
-    # Start directly with the selected boss agent
+    # Start directly with the selected vendor agent
     await session.start(
-        agent=boss_agent,
+        agent=vendor_agent,
         room=ctx.room,
         room_options=room_io.RoomOptions(
             delete_room_on_close=True,

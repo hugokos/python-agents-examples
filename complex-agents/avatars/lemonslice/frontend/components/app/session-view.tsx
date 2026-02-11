@@ -156,7 +156,7 @@ export const SessionView = ({
                 {...SHIMMER_MOTION_PROPS}
                 className="pointer-events-none mx-auto block w-full max-w-2xl pb-4 text-center text-sm font-semibold"
               >
-                Start your salary negotiation conversation
+                Start your contract negotiation conversation
               </MotionMessage>
             )}
           </AnimatePresence>

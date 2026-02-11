@@ -90,7 +90,7 @@ function createParticipantToken(
     });
   }
 
-  // Add participant attributes (e.g., boss_type)
+  // Add participant attributes (e.g., scenario_id)
   if (participantAttributes && Object.keys(participantAttributes).length > 0) {
     at.attributes = participantAttributes;
   }

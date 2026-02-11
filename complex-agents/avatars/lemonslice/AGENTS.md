@@ -1,10 +1,10 @@
-# LemonSlice Salary Negotiation Coach
+# LemonSlice Contract Negotiation Trainer
 
-A LiveKit Agents demo integrating the lemonslice plugin to help people practice asking their boss for a raise through interactive role-play sessions.
+A LiveKit Agents demo integrating the lemonslice plugin to help people practice handling procurement contract scenarios through interactive role-play sessions.
 
 ## Project overview
 
-This demo creates an AI-powered coaching experience where users can practice salary negotiation conversations. The lemonslice avatar acts as a coach, providing real-time feedback and advice as users role-play with AI-powered bosses that have different personalities and negotiation styles.
+This demo creates an AI-powered coaching experience where users can practice procurement contract negotiation conversations. The lemonslice avatar acts as a vendor representative, providing realistic contract scenarios, and can switch to coaching mode to provide real-time feedback and advice.
 
 ### Tech stack
 
@@ -30,23 +30,23 @@ This demo creates an AI-powered coaching experience where users can practice sal
 ### Backend ✅ Phase 1 complete
 
 **Implemented:**
-- Three distinct boss personalities with unique voices and avatars
-- Boss personality system: Easy (The Encourager), Medium (The Skeptic), Hard (The Busy Executive)
+- Three distinct procurement scenarios with unique voices and avatars
+- Scenario system: Scenario 1 (Late Delivery of Parts - fully implemented), Scenario 2 (Coming Soon), Scenario 3 (Coming Soon)
 - Complete coaching and roleplay mode switching
 - Session state management tracking negotiation flow
 - Function tools for coaching intervention (`how_am_i_doing()`, `return_to_roleplay()`)
 - 3-minute session timer with automatic wrap-up
 - Conversation analysis and feedback in coaching mode
-- Boss-specific prompt files with detailed instructions
-- STT/LLM/TTS pipeline fully configured with personality-specific settings
+- Scenario-specific prompt files with detailed instructions
+- STT/LLM/TTS pipeline fully configured with scenario-specific settings
 
 **Location:** `/agent/lemonslice-agent.py`, `/agent/prompts/*.yaml`, `/agent/utils.py`
 
 ### Frontend ✅ Phase 2 complete
 
 **Implemented:**
-- Custom welcome screen with boss personality selection
-- Three selectable boss cards (Easy, Medium, Hard)
+- Custom welcome screen with scenario selection
+- Three selectable scenario cards (Scenario 1 available, Scenarios 2-3 coming soon)
 - Zoom-style session UI with mode indicators
 - Real-time mode tracking (roleplay vs coaching)
 - Session timer (3-minute countdown)
@@ -61,32 +61,27 @@ This demo creates an AI-powered coaching experience where users can practice sal
 
 ### Core experience flow
 
-1. **Welcome screen** - User sees introduction and selects a boss personality
+1. **Welcome screen** - User sees introduction and selects a procurement scenario
 2. **Session setup** - Brief coaching tips before starting
-3. **Role-play mode** - User practices conversation with selected boss
-4. **Coaching interventions** - Coach avatar provides feedback at key moments
+3. **Role-play mode** - User practices conversation with vendor representative
+4. **Coaching interventions** - Coach provides feedback at key moments
 5. **Session summary** - Review performance and get actionable advice
 
-### Boss personalities
+### Procurement scenarios
 
-Three distinct boss types to practice with:
+Three procurement contract scenarios to practice with:
 
-1. **The Encourager**
-   - Supportive and open to discussion
-   - Good for building confidence
-   - Responds positively to clear value demonstrations
+1. **Scenario 1: Late Delivery of Parts (Available)**
+   - Vendor calls about a delayed shipment of repair kits
+   - Practice handling contract issues professionally
+   - Learn to gather facts, explore mitigation options, and maintain government rights
+   - Good for learning procurement communication fundamentals
 
-2. **The Skeptic**
-   - Questions everything
-   - Challenges user to defend their worth
-   - Pushes back on numbers
-   - Good for preparing difficult conversations
+2. **Scenario 2: Coming Soon**
+   - Additional procurement scenario in development
 
-3. **The Busy Executive**
-   - Impatient and time-constrained
-   - Values conciseness
-   - Needs quick, compelling arguments
-   - Good for practicing elevator pitch style asks
+3. **Scenario 3: Coming Soon**
+   - Additional procurement scenario in development
 
 ### Coaching strategy
 
@@ -95,13 +90,13 @@ The coach should:
 - Intervene at appropriate moments with advice
 - Praise effective techniques
 - Suggest alternative approaches when user struggles
-- Track key negotiation moments (opening ask, handling objections, closing)
+- Track key negotiation moments (gathering facts, exploring options, maintaining rights)
 
 ## Implementation plan
 
 ### Phase 1: Backend agent intelligence ✅ Complete
 
-- [x] Create boss personality system with distinct prompts
+- [x] Create scenario system with distinct prompts
 - [x] Implement coaching detection logic (when to intervene)
 - [x] Add session state management (track conversation flow)
 - [x] Build context switching (role-play mode vs coaching mode)
@@ -109,18 +104,18 @@ The coach should:
 - [x] Create structured instructions for different scenarios
 
 **Implementation details:**
-- Three boss agents (`EasyBossAgent`, `MediumBossAgent`, `HardBossAgent`) each with unique personalities, voices, and avatar configurations
-- Function tools: `how_am_i_doing()` for coaching intervention, `return_to_roleplay()` for returning to boss mode
-- `UserData` class manages session state including mode, boss type, timing, negotiation phase, and coaching requests
+- Three vendor agents (`Scenario1VendorAgent`, `Scenario2VendorAgent`, `Scenario3VendorAgent`) each with unique scenarios, voices, and avatar configurations
+- Function tools: `how_am_i_doing()` for coaching intervention, `return_to_roleplay()` for returning to vendor mode
+- `UserData` class manages session state including mode, scenario ID, timing, negotiation phase, and coaching requests
 - 3-minute session timer with automatic wrap-up and summary
-- YAML prompt files (`easy_boss_prompt.yaml`, `medium_boss_prompt.yaml`, `hard_boss_prompt.yaml`) contain dual-role instructions for both boss and coaching modes
+- YAML prompt files (`scenario_1_vendor_prompt.yaml`, `scenario_2_vendor_prompt.yaml`, `scenario_3_vendor_prompt.yaml`) contain dual-role instructions for both vendor and coaching modes
 - Dynamic instruction updating via `update_instructions()` for seamless mode switching
 - Room attributes broadcast current mode to frontend
 
 ### Phase 2: Frontend Zoom-style UI ✅ Complete
 
 - [x] Design Zoom call layout (video tiles, controls)
-- [x] Build boss personality selector screen
+- [x] Build scenario selector screen
 - [x] Create session setup flow with pre-coaching tips
 - [x] Add role-play specific controls
   - [x] "How am I doing?" coaching button
@@ -133,9 +128,9 @@ The coach should:
 - [ ] Build session summary view with insights
 
 **Implementation details:**
-- Boss personality data in `/frontend/lib/boss-personalities.ts`
-- Custom welcome view with three boss selection cards
-- Boss type passed via participant attributes to agent
+- Scenario data in `/frontend/lib/scenarios.ts`
+- Custom welcome view with three scenario selection cards
+- Scenario ID passed via participant attributes to agent
 - Real-time mode tracking using `useParticipantAttributes` hook
 - Mode indicator component at top of screen
 - Session timer with low-time warning (< 60s)
@@ -289,7 +284,7 @@ The LiveKit Model Context Protocol (MCP) server provides direct access to LiveKi
 ## Open questions
 
 - Should coaching be automatic or user-triggered?
-  - Triggered by a button that says How am I doing?
+  - Triggered by a button that says "How am I doing?"
 - Should sessions have time limits?
   - 3 minutes then it goes back to the main page
 

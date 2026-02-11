@@ -5,7 +5,7 @@ import { useSessionContext } from '@livekit/components-react';
 import type { AppConfig } from '@/app-config';
 import { SessionView } from '@/components/app/session-view';
 import { WelcomeView } from '@/components/app/welcome-view';
-import type { BossType } from '@/lib/boss-personalities';
+import type { ScenarioId } from '@/lib/scenarios';
 
 const MotionWelcomeView = motion.create(WelcomeView);
 const MotionSessionView = motion.create(SessionView);
@@ -30,14 +30,14 @@ const VIEW_MOTION_PROPS = {
 
 interface ViewControllerProps {
   appConfig: AppConfig;
-  onBossSelected: (bossType: BossType) => void;
+  onScenarioSelected: (scenarioId: ScenarioId) => void;
 }
 
-export function ViewController({ appConfig, onBossSelected }: ViewControllerProps) {
+export function ViewController({ appConfig, onScenarioSelected }: ViewControllerProps) {
   const { isConnected } = useSessionContext();
 
-  const handleStartCall = (bossType: BossType) => {
-    onBossSelected(bossType);
+  const handleStartCall = (scenarioId: ScenarioId) => {
+    onScenarioSelected(scenarioId);
     // start() is now handled by useEffect in App after state updates
   };
 

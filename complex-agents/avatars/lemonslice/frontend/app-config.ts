@@ -23,8 +23,8 @@ export interface AppConfig {
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
   companyName: 'LemonSlice',
-  pageTitle: 'Salary Negotiation Coach',
-  pageDescription: 'Practice asking your boss for a raise with AI-powered role-play',
+  pageTitle: 'Contract Negotiation Trainer',
+  pageDescription: 'Practice handling procurement contract scenarios with AI-powered role-play',
 
   supportsChatInput: true,
   supportsVideoInput: true,

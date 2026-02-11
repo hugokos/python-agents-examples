@@ -1,6 +1,6 @@
 'use client';
 
-import { MODE_COLORS } from '@/lib/boss-personalities';
+import { MODE_COLORS } from '@/lib/scenarios';
 import { cn } from '@/lib/shadcn/utils';
 
 interface ModeIndicatorProps {

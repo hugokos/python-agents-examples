@@ -1,6 +1,6 @@
-# LemonSlice salary negotiation coach
+# LemonSlice contract negotiation trainer
 
-This agent creates an interactive salary negotiation practice experience using [LemonSlice](https://www.lemonslice.com/) avatars with LiveKit Agents. Users can practice asking for a raise with three different boss personalities, and get real-time coaching feedback.
+This agent creates an interactive procurement contract negotiation practice experience using [LemonSlice](https://www.lemonslice.com/) avatars with LiveKit Agents. Users can practice handling contract scenarios with different vendor personas, and get real-time coaching feedback.
 
 ## Setup
 
@@ -15,6 +15,12 @@ LIVEKIT_API_SECRET=your_livekit_api_secret
 LIVEKIT_URL=wss://your-project.livekit.cloud
 
 LEMONSLICE_API_KEY=your_lemonslice_api_key
+
+# LemonSlice Agent IDs (use dashboard-configured agents)
+# These reference agents you've created in your LemonSlice dashboard
+SCENARIO_1_AGENT_ID=agent_f8b4dddd8bee7a8a
+# SCENARIO_2_AGENT_ID=agent_your_second_agent_id
+# SCENARIO_3_AGENT_ID=agent_your_third_agent_id
 ```
 
 ### Dependencies
@@ -41,17 +47,17 @@ uv run lemonslice-agent.py dev
 
 ## Features
 
-### Three boss personalities
+### Three procurement scenarios
 
-Each boss has a unique voice, avatar, and negotiation style:
+Each scenario has a unique voice, avatar, and contract situation:
 
-- **Easy (The Encourager)**: Supportive and open to discussion. Uses warm, encouraging body language and a friendly voice.
-- **Medium (The Skeptic)**: Questions everything and pushes back on numbers. Professional and measured in tone.
-- **Hard (The Busy Executive)**: Impatient and time-constrained. Direct and dismissive with confident body language.
+- **Scenario 1 (Late Delivery of Parts)**: Vendor calls about a delayed shipment. Practice handling contract issues professionally and learning procurement communication fundamentals.
+- **Scenario 2 (Coming Soon)**: Additional procurement scenario in development.
+- **Scenario 3 (Coming Soon)**: Additional procurement scenario in development.
 
 ### Dual-mode operation
 
-- **Roleplay mode**: Practice negotiating with the selected boss personality
+- **Roleplay mode**: Practice negotiating with the vendor persona
 - **Coaching mode**: Get real-time feedback on your performance by asking "How am I doing?"
 
 ### Session management
@@ -69,15 +75,15 @@ Each boss has a unique voice, avatar, and negotiation style:
 
 ## How it works
 
-1. User selects a boss personality in the frontend (easy, medium, or hard)
-2. Agent receives boss type via participant attributes
-3. Agent creates appropriate `BaseBossAgent` subclass with personality-specific:
+1. User selects a procurement scenario in the frontend (scenario_1, scenario_2, or scenario_3)
+2. Agent receives scenario ID via participant attributes
+3. Agent creates appropriate `BaseVendorAgent` subclass with scenario-specific:
    - Instructions loaded from YAML prompt files
    - Cartesia voice ID
-   - LemonSlice avatar image and movement prompt
-4. `AgentSession` starts with the selected boss agent
-5. LemonSlice `AvatarSession` publishes synchronized audio + video tracks
-6. Boss agent greets user and begins roleplay
+   - LemonSlice agent ID (references dashboard-configured avatar)
+4. `AgentSession` starts with the selected vendor agent
+5. LemonSlice `AvatarSession` publishes synchronized audio + video tracks using the dashboard agent
+6. Vendor agent greets user and begins roleplay
 7. User can trigger coaching mode via function tool `how_am_i_doing()`
 8. Agent switches modes by updating instructions dynamically
 9. After 3 minutes, session automatically ends with a farewell message
@@ -86,12 +92,12 @@ Each boss has a unique voice, avatar, and negotiation style:
 
 ### Agent classes
 
-- `BaseBossAgent`: Base class with coaching functionality and mode switching
-  - `EasyBossAgent`: The Encourager personality
-  - `MediumBossAgent`: The Skeptic personality
-  - `HardBossAgent`: The Busy Executive personality
+- `BaseVendorAgent`: Base class with coaching functionality and mode switching
+  - `Scenario1VendorAgent`: Late Delivery of Parts scenario
+  - `Scenario2VendorAgent`: Placeholder for future scenario
+  - `Scenario3VendorAgent`: Placeholder for future scenario
 
 ### Function tools
 
 - `how_am_i_doing()`: Switches from roleplay to coaching mode
-- `return_to_roleplay()`: Returns from coaching back to boss roleplay
+- `return_to_roleplay()`: Returns from coaching back to vendor roleplay

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { BossCard } from '@/components/app/boss-card';
+import { ScenarioCard } from '@/components/app/scenario-card';
 import { Button } from '@/components/ui/button';
-import { BOSS_PERSONALITIES, type BossType } from '@/lib/boss-personalities';
+import { SCENARIOS, type ScenarioId } from '@/lib/scenarios';
 
 interface WelcomeViewProps {
   startButtonText: string;
-  onStartCall: (bossType: BossType) => void;
+  onStartCall: (scenarioId: ScenarioId) => void;
 }
 
 export const WelcomeView = ({
@@ -15,10 +15,10 @@ export const WelcomeView = ({
   onStartCall,
   ref,
 }: React.ComponentProps<'div'> & WelcomeViewProps) => {
-  const [selectedBoss, setSelectedBoss] = useState<BossType>('easy');
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('scenario_1');
 
   const handleStart = () => {
-    onStartCall(selectedBoss);
+    onStartCall(selectedScenario);
   };
 
   return (
@@ -26,22 +26,22 @@ export const WelcomeView = ({
       <section className="bg-background flex w-full max-w-5xl flex-col items-center text-center">
         {/* Header */}
         <div className="mb-2 flex w-full items-center justify-center">
-          <h1 className="text-foreground text-3xl font-bold md:text-4xl">Salary Negotiation Coach</h1>
+          <h1 className="text-foreground text-3xl font-bold md:text-4xl">Contract Negotiation Trainer</h1>
         </div>
         <p className="text-muted-foreground mb-6 max-w-2xl text-base md:mb-8 md:text-lg">
-          Practice asking your boss for a raise.
+          Practice handling procurement contract scenarios.
           <br />
-          Choose your boss personality and start your practice session.
+          Choose a procurement scenario and start your practice session.
         </p>
 
-        {/* Boss selection cards */}
+        {/* Scenario selection cards */}
         <div className="mb-6 grid w-full grid-cols-1 gap-3 md:mb-8 md:grid-cols-3 md:gap-4">
-          {Object.values(BOSS_PERSONALITIES).map((boss) => (
-            <BossCard
-              key={boss.id}
-              boss={boss}
-              selected={selectedBoss === boss.id}
-              onSelect={() => setSelectedBoss(boss.id)}
+          {Object.values(SCENARIOS).map((scenario) => (
+            <ScenarioCard
+              key={scenario.id}
+              scenario={scenario}
+              selected={selectedScenario === scenario.id}
+              onSelect={() => setSelectedScenario(scenario.id)}
             />
           ))}
         </div>
@@ -60,8 +60,8 @@ export const WelcomeView = ({
           <h3 className="text-foreground mb-3 text-base font-semibold md:text-lg">How it works</h3>
           <ul className="text-muted-foreground space-y-2 text-left text-sm">
             <li>• Your session will last 3 minutes</li>
-            <li>• Practice your salary negotiation conversation</li>
-            <li>• Click &quot;How am I doing?&quot; anytime to get coaching feedback</li>
+            <li>• Practice your contract negotiation conversation</li>
+            <li>• Ask &quot;How am I doing?&quot; anytime to get coaching feedback</li>
             <li>• The coach will provide tips and suggestions to improve</li>
           </ul>
         </div>
