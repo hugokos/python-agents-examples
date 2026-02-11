@@ -8,6 +8,15 @@ from typing import Optional
 
 
 @dataclass
+class ToolCall:
+    """A function tool invocation during the session."""
+    tool_name: str  # Name of the function tool
+    timestamp: float  # When the tool was called
+    arguments: dict  # Arguments passed to the tool
+    result: Optional[str] = None  # Result returned by the tool (if any)
+
+
+@dataclass
 class ConversationTurn:
     """A single turn in the conversation transcript."""
     speaker: str  # "trainee" or "vendor"
@@ -27,6 +36,7 @@ class RawTranscript:
     session_duration: float
     participant_id: str
     turns: list[ConversationTurn]
+    tool_calls: list[ToolCall] = field(default_factory=list)  # Function tool invocations
     
     def to_metadata(self) -> dict:
         """Extract session metadata for the After Action Report."""
@@ -36,7 +46,8 @@ class RawTranscript:
             "session_start_time": self.session_start_time,
             "session_end_time": self.session_end_time,
             "session_duration": self.session_duration,
-            "participant_id": self.participant_id
+            "participant_id": self.participant_id,
+            "tool_calls_count": len(self.tool_calls)
         }
 
 
@@ -206,7 +217,8 @@ class AfterActionReport:
                 "session_end_time": self.raw_transcript.session_end_time,
                 "session_duration": self.raw_transcript.session_duration,
                 "participant_id": self.raw_transcript.participant_id,
-                "turns": [asdict(turn) for turn in self.raw_transcript.turns]
+                "turns": [asdict(turn) for turn in self.raw_transcript.turns],
+                "tool_calls": [asdict(tc) for tc in self.raw_transcript.tool_calls]
             },
             "normalized_transcript": {
                 "session_id": self.normalized_transcript.session_id,

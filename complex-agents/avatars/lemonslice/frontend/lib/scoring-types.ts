@@ -3,6 +3,13 @@
  * These match the Python dataclasses in agent/scoring/models.py
  */
 
+export interface ToolCall {
+  tool_name: string; // Name of the function tool
+  timestamp: number; // When the tool was called
+  arguments: Record<string, unknown>; // Arguments passed to the tool
+  result?: string | null; // Result returned by the tool (if any)
+}
+
 export interface ConversationTurn {
   speaker: string; // "trainee" or "vendor"
   raw_text: string; // Original ASR output
@@ -19,6 +26,7 @@ export interface RawTranscript {
   session_duration: number;
   participant_id: string;
   turns: ConversationTurn[];
+  tool_calls: ToolCall[]; // Function tool invocations
 }
 
 export interface NormalizedTranscript {
@@ -129,6 +137,7 @@ export interface SessionMetadata {
   session_end_time: number;
   session_duration: number;
   participant_id: string;
+  tool_calls_count: number; // Number of function tool calls during session
 }
 
 export interface AfterActionReport {

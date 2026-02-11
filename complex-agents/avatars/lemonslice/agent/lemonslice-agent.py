@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -12,6 +13,8 @@ from livekit.agents.llm import function_tool
 from livekit.agents.voice import RunContext
 from livekit.plugins import lemonslice
 
+from scoring.models import ConversationTurn, RawTranscript, ToolCall
+from scoring.storage import get_storage
 from utils import load_prompt
 
 logger = logging.getLogger("lemonslice-salary-coach")
@@ -94,14 +97,17 @@ SCENARIO_CONFIGS = {
 
 
 @dataclass
-@dataclass
 class UserData:
     """Stores session state for contract negotiation practice."""
     ctx: Optional[JobContext] = None
     scenario_id: str = "scenario_1"
+    session_id: str = ""  # Unique session identifier
+    participant_id: str = ""  # Participant identifier
     session_start_time: float = 0.0
     timer_task: Optional[asyncio.Task] = None
     session_ended: bool = False
+    conversation_turns: list = field(default_factory=list)  # List of conversation turns for transcript capture
+    tool_calls: list = field(default_factory=list)  # List of function tool calls for metadata tracking
 
     def summarize(self) -> str:
         return f"Contract negotiation practice. Scenario: {self.scenario_id}"
@@ -130,6 +136,9 @@ class BaseVendorAgent(Agent):
                 "agent": agent_name
             })
         
+        # Set up conversation turn tracking
+        self._setup_conversation_tracking()
+        
         # Start the 3-minute timer if not already started
         if userdata.timer_task is None or userdata.timer_task.done():
             userdata.timer_task = asyncio.create_task(
@@ -145,12 +154,111 @@ class BaseVendorAgent(Agent):
             userdata.timer_task.cancel()
             logger.info("Session timer cancelled on exit")
         
+        # Calculate session end time and duration
+        session_end_time = time.time()
+        session_duration = session_end_time - userdata.session_start_time
+        
         # Log session stats
-        session_duration = time.time() - userdata.session_start_time
         logger.info(
             f"Session ended - Scenario: {userdata.scenario_id}, "
-            f"Duration: {session_duration:.1f}s"
+            f"Duration: {session_duration:.1f}s, "
+            f"Turns captured: {len(userdata.conversation_turns)}, "
+            f"Tool calls: {len(userdata.tool_calls)}"
         )
+        
+        # Persist transcript to storage
+        try:
+            # Generate unique session_id if not already set
+            if not userdata.session_id:
+                userdata.session_id = f"session_{uuid.uuid4().hex[:12]}"
+                logger.info(f"Generated session_id: {userdata.session_id}")
+            
+            # Convert conversation turns to ConversationTurn objects
+            turns = [
+                ConversationTurn(
+                    speaker=turn["speaker"],
+                    raw_text=turn["raw_text"],
+                    normalized_text=turn["raw_text"],  # Will be normalized later by TranscriptNormalizer
+                    timestamp=turn["timestamp"],
+                    turn_index=turn["turn_index"]
+                )
+                for turn in userdata.conversation_turns
+            ]
+            
+            # Convert tool calls to ToolCall objects
+            tool_call_objects = [
+                ToolCall(
+                    tool_name=tc["tool_name"],
+                    timestamp=tc["timestamp"],
+                    arguments=tc["arguments"],
+                    result=tc.get("result")
+                )
+                for tc in userdata.tool_calls
+            ]
+            
+            # Create RawTranscript object
+            transcript = RawTranscript(
+                session_id=userdata.session_id,
+                scenario_id=userdata.scenario_id,
+                session_start_time=userdata.session_start_time,
+                session_end_time=session_end_time,
+                session_duration=session_duration,
+                participant_id=userdata.participant_id or "unknown",
+                turns=turns,
+                tool_calls=tool_call_objects
+            )
+            
+            # Save transcript to storage
+            storage = get_storage()
+            storage_path = storage.save_transcript(userdata.session_id, transcript)
+            logger.info(f"Transcript persisted to: {storage_path}")
+            
+        except Exception as e:
+            logger.error(f"Failed to persist transcript: {e}", exc_info=True)
+            # Don't crash the agent - just log the error
+
+    def _setup_conversation_tracking(self) -> None:
+        """Set up event handlers to capture conversation turns."""
+        userdata: UserData = self.session.userdata
+        
+        @self.session.on("user_input_transcribed")
+        def on_user_transcript(event):
+            """Capture user utterances."""
+            if event.is_final:
+                turn_index = len(userdata.conversation_turns)
+                turn = {
+                    "speaker": "trainee",
+                    "raw_text": event.transcript,
+                    "timestamp": time.time(),
+                    "turn_index": turn_index
+                }
+                userdata.conversation_turns.append(turn)
+                logger.debug(f"Captured user turn {turn_index}: {event.transcript[:50]}...")
+        
+        @self.session.on("agent_speech_committed")
+        def on_agent_speech(text: str):
+            """Capture agent responses."""
+            turn_index = len(userdata.conversation_turns)
+            turn = {
+                "speaker": "vendor",
+                "raw_text": text,
+                "timestamp": time.time(),
+                "turn_index": turn_index
+            }
+            userdata.conversation_turns.append(turn)
+            logger.debug(f"Captured agent turn {turn_index}: {text[:50]}...")
+        
+        @self.session.on("function_tool_called")
+        def on_tool_call(tool_name: str, arguments: dict, result: Optional[str] = None):
+            """Capture function tool invocations."""
+            tool_call = {
+                "tool_name": tool_name,
+                "timestamp": time.time(),
+                "arguments": arguments,
+                "result": result
+            }
+            userdata.tool_calls.append(tool_call)
+            logger.info(f"Captured tool call: {tool_name} with args {arguments}")
 
     async def _start_session_timer(self, userdata: UserData, duration: int):
         """Timer that ends the session after specified duration."""
@@ -271,6 +379,14 @@ async def entrypoint(ctx: JobContext):
         logger.warning(f"Invalid scenario_id '{scenario_id}', defaulting to 'scenario_1'")
         scenario_id = "scenario_1"
     
+    # Generate unique session_id
+    session_id = f"session_{uuid.uuid4().hex[:12]}"
+    
+    # Get participant_id (use participant identity or generate one)
+    participant_id = participant.identity or f"participant_{uuid.uuid4().hex[:8]}"
+    
+    logger.info(f"Session initialized - session_id: {session_id}, participant_id: {participant_id}")
+    
     # Get scenario configuration for avatar and voice
     scenario_config = SCENARIO_CONFIGS[scenario_id]
     
@@ -278,6 +394,8 @@ async def entrypoint(ctx: JobContext):
     userdata = UserData(
         ctx=ctx,
         scenario_id=scenario_id,
+        session_id=session_id,
+        participant_id=participant_id,
         session_start_time=time.time()
     )
     
